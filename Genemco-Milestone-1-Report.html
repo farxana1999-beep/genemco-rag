@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genemco Catalog RAG — Milestone 1 Report</title>
+<style>
+  :root{
+    --ground:#FAFBFC; --surface:#F1F4F7; --surface-2:#E8EDF2;
+    --ink:#141C24; --ink-soft:#33424F; --muted:#5A6A78;
+    --rule:#D9E1E8; --rule-strong:#BFCCD6;
+    --accent:#0B6E8F; --accent-soft:#E2F0F5;
+    --verified:#1A7A56; --verified-soft:#E1F1EA;
+    --pending:#A8611A; --pending-soft:#F8EEE1;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --mono:"Cascadia Mono","SF Mono",ui-monospace,Consolas,"Liberation Mono",monospace;
+    --measure:70ch;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0E141A; --surface:#161F27; --surface-2:#1D2833;
+      --ink:#E4EBF1; --ink-soft:#C2CFDA; --muted:#93A3B1;
+      --rule:#24313C; --rule-strong:#33434F;
+      --accent:#5CBBDA; --accent-soft:#12303C;
+      --verified:#49C193; --verified-soft:#102E24;
+      --pending:#DCA25A; --pending-soft:#33260F;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0E141A; --surface:#161F27; --surface-2:#1D2833;
+    --ink:#E4EBF1; --ink-soft:#C2CFDA; --muted:#93A3B1;
+    --rule:#24313C; --rule-strong:#33434F;
+    --accent:#5CBBDA; --accent-soft:#12303C;
+    --verified:#49C193; --verified-soft:#102E24;
+    --pending:#DCA25A; --pending-soft:#33260F;
+  }
+
+  *{box-sizing:border-box;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:var(--sans); font-size:16px; line-height:1.62;
+    padding:0 24px 96px;
+  }
+  .wrap{max-width:var(--measure); margin:0 auto;}
+
+  /* ---------- masthead ---------- */
+  .masthead{
+    border-bottom:2px solid var(--ink); padding:56px 0 20px; margin-bottom:8px;
+  }
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 18px;
+  }
+  h1{
+    font-family:var(--serif); font-weight:600; font-size:clamp(30px,5.2vw,44px);
+    line-height:1.12; letter-spacing:-.015em; margin:0 0 14px; text-wrap:balance;
+  }
+  .standfirst{
+    font-size:17px; color:var(--ink-soft); margin:0; max-width:58ch; text-wrap:pretty;
+  }
+  .docmeta{
+    display:flex; flex-wrap:wrap; gap:8px 28px; margin:24px 0 0;
+    font-family:var(--mono); font-size:11.5px; color:var(--muted);
+  }
+  .docmeta b{color:var(--ink-soft); font-weight:600;}
+
+  /* ---------- sections ---------- */
+  section{padding-top:44px;}
+  h2{
+    font-family:var(--serif); font-size:25px; font-weight:600; line-height:1.25;
+    letter-spacing:-.01em; margin:0 0 6px; text-wrap:balance;
+    display:flex; align-items:baseline; gap:12px;
+  }
+  h2 .num{
+    font-family:var(--mono); font-size:12px; font-weight:400; color:var(--accent);
+    letter-spacing:.08em; flex:none;
+  }
+  h3{
+    font-size:15px; font-weight:650; margin:30px 0 8px; letter-spacing:-.005em;
+    color:var(--ink);
+  }
+  p{margin:0 0 14px; text-wrap:pretty;}
+  .lede{color:var(--ink-soft); margin-bottom:20px;}
+  a{color:var(--accent);}
+  strong{font-weight:650;}
+
+  /* ---------- provenance chip ---------- */
+  .prov{
+    display:inline-flex; align-items:center; gap:6px; margin:0 0 16px;
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    background:var(--surface); border:1px solid var(--rule);
+    border-radius:2px; padding:3px 9px;
+  }
+  .prov::before{
+    content:""; width:5px; height:5px; border-radius:50%;
+    background:var(--accent); flex:none;
+  }
+
+  /* ---------- status pills ---------- */
+  .pill{
+    display:inline-block; font-family:var(--mono); font-size:10.5px;
+    letter-spacing:.07em; text-transform:uppercase; padding:2px 8px;
+    border-radius:2px; white-space:nowrap; font-weight:600;
+  }
+  .pill.ok{background:var(--verified-soft); color:var(--verified);}
+  .pill.wait{background:var(--pending-soft); color:var(--pending);}
+  .pill.info{background:var(--accent-soft); color:var(--accent);}
+
+  /* ---------- tables ---------- */
+  .tablewrap{overflow-x:auto; margin:0 0 20px; border:1px solid var(--rule); border-radius:3px;}
+  table{border-collapse:collapse; width:100%; font-size:14px; min-width:440px;}
+  caption{
+    caption-side:top; text-align:left; padding:10px 14px;
+    font-family:var(--mono); font-size:11px; letter-spacing:.06em;
+    text-transform:uppercase; color:var(--muted);
+    background:var(--surface); border-bottom:1px solid var(--rule);
+  }
+  th,td{padding:9px 14px; text-align:left; border-bottom:1px solid var(--rule); vertical-align:top;}
+  thead th{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.07em;
+    text-transform:uppercase; color:var(--muted); font-weight:600;
+    background:var(--surface);
+  }
+  tbody tr:last-child td{border-bottom:none;}
+  td.num, th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:var(--mono); font-size:13px;}
+  td code{font-size:12.5px;}
+
+  /* ---------- captured output ---------- */
+  .capture{
+    margin:0 0 20px; border:1px solid var(--rule); border-left:3px solid var(--accent);
+    border-radius:3px; background:var(--surface); overflow:hidden;
+  }
+  .capture .head{
+    font-family:var(--mono); font-size:11px; color:var(--muted);
+    padding:8px 14px; border-bottom:1px solid var(--rule); background:var(--surface-2);
+  }
+  .capture pre{
+    margin:0; padding:14px; overflow-x:auto;
+    font-family:var(--mono); font-size:12.5px; line-height:1.6; color:var(--ink-soft);
+  }
+  code{font-family:var(--mono); background:var(--surface); padding:1px 5px;
+       border-radius:2px; font-size:13px; color:var(--ink-soft);}
+  .capture pre code{background:none; padding:0; font-size:inherit;}
+
+  /* ---------- verbatim quote ---------- */
+  blockquote.verbatim{
+    margin:0 0 8px; padding:16px 18px; background:var(--surface);
+    border:1px solid var(--rule-strong); border-radius:3px;
+    font-family:var(--mono); font-size:12.5px; line-height:1.65; color:var(--ink);
+  }
+  .citation{
+    font-family:var(--mono); font-size:11px; color:var(--muted); margin:0 0 20px;
+  }
+
+  /* ---------- callout ---------- */
+  .note{
+    margin:0 0 20px; padding:14px 16px; border-radius:3px;
+    background:var(--surface); border:1px solid var(--rule); font-size:14.5px;
+  }
+  .note.warn{background:var(--pending-soft); border-color:var(--pending);}
+  .note .label{
+    display:block; font-family:var(--mono); font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; margin-bottom:6px; color:var(--pending); font-weight:600;
+  }
+  .note.plain .label{color:var(--accent);}
+  .note p:last-child{margin-bottom:0;}
+
+  ul,ol{margin:0 0 16px; padding-left:22px;}
+  li{margin-bottom:7px;}
+  li::marker{color:var(--muted);}
+
+  hr{border:none; border-top:1px solid var(--rule); margin:44px 0 0;}
+
+  .footer{
+    margin-top:52px; padding-top:20px; border-top:1px solid var(--rule);
+    font-family:var(--mono); font-size:11px; color:var(--muted); line-height:1.7;
+  }
+
+  @media print{
+    body{padding:0; font-size:11pt; background:#fff; color:#000;}
+    .capture,.note,.tablewrap,blockquote.verbatim{break-inside:avoid;}
+    section{break-inside:auto; page-break-inside:auto;}
+    h2{break-after:avoid;}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Milestone 1 · Validation Report</p>
+    <h1>Genemco Catalog RAG — Architecture &amp; Data Ingestion Pipeline</h1>
+    <p class="standfirst">
+      A retrieval system over the Genemco catalogue that answers questions about specific
+      machines using only values traced back to a source document — and refuses to answer
+      when it cannot.
+    </p>
+    <div class="docmeta">
+      <span><b>Prepared for</b> Genemco</span>
+      <span><b>Date</b> 9 August 2026</span>
+      <span><b>Scope</b> SOW v3.1, Milestone 1</span>
+      <span><b>Sample</b> 20 SKUs</span>
+    </div>
+  </header>
+
+  <section>
+    <h2><span class="num">01</span> Where the project stands</h2>
+    <p class="lede">
+      The pipeline runs end to end. Every component in the contract is built and has been
+      exercised against real Genemco data and a real Frick service manual. Three inputs are
+      still needed from Genemco before the full catalogue run can begin.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Component status, verified by execution</caption>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Evidence</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Shopify catalogue ingestion</td><td><span class="pill ok">Working</span></td><td>20 SKUs ingested and normalised</td></tr>
+          <tr><td>PDF manual parsing</td><td><span class="pill ok">Working</span></td><td>68-page Frick manual, 34 tables recovered</td></tr>
+          <tr><td>Golden Record + provenance</td><td><span class="pill ok">Working</span></td><td>14 spec fields, each citing a page</td></tr>
+          <tr><td>Grounded FAQ generation</td><td><span class="pill ok">Working</span></td><td>5 published, 1 rejected by the gate</td></tr>
+          <tr><td>Safety-text retrieval</td><td><span class="pill ok">Working</span></td><td>96 safety panels, quoted verbatim</td></tr>
+          <tr><td>Hybrid search API</td><td><span class="pill ok">Working</span></td><td>590 vectors, 4 query types verified</td></tr>
+          <tr><td>Telemetry endpoint</td><td><span class="pill ok">Working</span></td><td>Runs on the built-in default schema</td></tr>
+          <tr><td>Shopify <em>Admin</em> API</td><td><span class="pill wait">Blocked</span></td><td>Access token not yet supplied</td></tr>
+          <tr><td>Nameplate photo extraction</td><td><span class="pill wait">Blocked</span></td><td>No photos supplied yet</td></tr>
+          <tr><td>Technical literature (Stream C)</td><td><span class="pill wait">Blocked</span></td><td>No documents supplied yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <span class="label">Please read — how the catalogue data was sourced</span>
+      <p>
+        The Shopify <strong>Admin</strong> API token supplied so far is a placeholder and returns
+        <code>401 Unauthorized</code>. So that work could continue, the 20 SKUs in this report were
+        read from the <strong>public</strong> genemco.com product feed instead. That feed carries no
+        real inventory counts, no cost data, and no unpublished products.
+      </p>
+      <p>
+        Every record sourced this way is stamped <code>sync_mode: "public_storefront"</code> so it can
+        never be mistaken for authoritative data. Supplying a working Admin token replaces it cleanly —
+        no rebuild required.
+      </p>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">02</span> Reading a real service manual</h2>
+    <p class="lede">
+      Genemco supplied Frick <em>Form 070.410-IOM (Nov 2014)</em> — the 68-page installation and
+      maintenance manual for RXF Rotary Screw Compressor Units, models 12 through 101. This is the
+      hard case the contract was written around: not a one-product spec sheet, but a service manual
+      covering dozens of machines at once.
+    </p>
+    <p class="prov">Source: 070.410-IOM.pdf · 68 pages · 34 tables detected</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Table recovery, page by page</caption>
+        <thead>
+          <tr><th>Table</th><th class="num">Page</th><th>Organised by</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Oil Charge</td><td class="num">7</td><td>RXF model</td><td><span class="pill ok">Extracted</span></td></tr>
+          <tr><td>Geometrical Swept Volume</td><td class="num">4</td><td>XJF compressor model</td><td><span class="pill ok">Extracted</span></td></tr>
+          <tr><td>Bolt torques</td><td class="num">31</td><td>Both model tiers</td><td><span class="pill ok">Extracted</span></td></tr>
+          <tr><td>Allowable Flange Loads</td><td class="num">5</td><td>Nozzle size, not model</td><td><span class="pill wait">See limits</span></td></tr>
+          <tr><td>CH Coupling Data</td><td class="num">6</td><td>Coupling size, not model</td><td><span class="pill wait">See limits</span></td></tr>
+          <tr><td>Pressure Transducer Conversion</td><td class="num">34</td><td>Sensor voltage</td><td><span class="pill info">Skipped</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>The Oil Charge table, exactly as the manual prints it</h3>
+    <div class="capture">
+      <div class="head">Extracted from page 7</div>
+<pre><code>RXF MODEL   BASIC CHARGE (gallon)   ADDITIONAL FOR OIL COOLER (gallon)
+12 - 19            10                          1
+24 - 50            11                          1
+58, 68             25                          3½
+85, 101            36                          3½</code></pre>
+    </div>
+
+    <p>
+      Note how the manual labels its rows: <code>85, 101</code> is a list, <code>12 - 19</code> is a
+      range. A compressor sold as an <strong>RXF-85</strong> has to know that its oil charge lives in
+      the row marked <code>85, 101</code> — 36 gallons — and that the other three rows describe
+      different machines entirely.
+    </p>
+
+    <h3>One manual, several products</h3>
+    <p>
+      The same document describes both the packaged unit (RXF-85) and the compressor inside it
+      (XJF-151L). A single SKU needs specifications from both tiers, and from neither of the machines
+      it isn't. The system now reads six different labelling conventions found in this one manual:
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Row labels, and whether they apply to SKU WHB03 (RXF-85 / XJF-151L)</caption>
+        <thead>
+          <tr><th>Label in the manual</th><th>Where</th><th>Applied?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>85, 101</code></td><td>Oil charge, p7</td><td><span class="pill ok">Yes</span></td></tr>
+          <tr><td><code>58, 68, 85, 101</code></td><td>Bolt torque, p31</td><td><span class="pill ok">Yes</span></td></tr>
+          <tr><td><code>XJF 151L</code></td><td>Swept volume, p4</td><td><span class="pill ok">Yes</span></td></tr>
+          <tr><td><code>12 - 19</code>, <code>24 - 50</code>, <code>58, 68</code></td><td>Oil charge, p7</td><td><span class="pill wait">Correctly excluded</span></td></tr>
+          <tr><td><code>XJF 151A</code> / <code>151M</code> / <code>151N</code></td><td>Swept volume, p4</td><td><span class="pill wait">Correctly excluded</span></td></tr>
+          <tr><td><code>XJS/XJF 95M</code></td><td>Swept volume, p4</td><td><span class="pill wait">Correctly excluded</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note plain">
+      <span class="label">Why the variant letter matters</span>
+      <p>
+        XJF 151A, 151M, 151L and 151N are rated at 342, 403, 500 and 598 CFM respectively. Treating
+        them as one model would have quietly averaged four different machines into one product page.
+        The system reads the variant letter from the product title and keeps only the matching row.
+      </p>
+    </div>
+
+    <p>
+      Across the whole manual, <strong>116 specification rows</strong> were extracted for every machine
+      it covers. <strong>14</strong> of those belong to WHB03 and were kept; the rest were correctly
+      attributed elsewhere.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">03</span> Every value carries its source</h2>
+    <p class="lede">
+      No specification is stored as a bare number. Each one records where it came from, how it was
+      read, and how confident the system is — so any figure on the website can be traced back to a
+      page in a manual.
+    </p>
+    <p class="prov">Captured from: data/golden_records/WHB03.json</p>
+
+    <div class="capture">
+      <div class="head">SKU WHB03 — Frick RXF-85-H Rotary Screw Compressor Package</div>
+<pre><code>FIELD                                    VALUE       UNIT    SOURCE      METHOD         CONF  PAGE
+basic_charge                              36.0       gallon  pdf_manual  docling_table  0.9   p7
+additional_for_oil_cooler                  3.5       gallon  pdf_manual  docling_table  0.9   p7
+max_speed_rpm                           4306.0       —       pdf_manual  docling_table  0.9   p4
+rotor_diameter_mm                        151.0       —       pdf_manual  docling_table  0.9   p4
+rotor_l_d                                  1.6       —       pdf_manual  docling_table  0.9   p4
+cfm_3550_rpm                             500.0       —       pdf_manual  docling_table  0.9   p4
+swept_volume_ft3_per_rev               0.14075       —       pdf_manual  docling_table  0.9   p4
+motor_flange_tunnel_torque               145.0       ft-lb   pdf_manual  docling_table  0.9   p31
+motor_flange_tunnel_bolt_size       5/8 or 3/4       in.     pdf_manual  docling_table  0.9   p31
+discharge_flange_torque                   80.0       ft-lb   pdf_manual  docling_table  0.9   p31
+                                        … 14 fields total</code></pre>
+    </div>
+
+    <p>
+      When two sources disagree, nothing is silently overwritten. The nameplate wins on electrical and
+      serial-number fields; the manual wins on dimensions and performance; and any numeric disagreement
+      beyond 5% is recorded as a conflict for a person to resolve. This run produced
+      <strong>zero conflicts</strong> — expected, since only one technical source was available. The
+      rule becomes active once nameplate photographs are supplied.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">04</span> Product FAQs that cannot invent numbers</h2>
+    <p class="lede">
+      FAQs are generated for SEO, then put through a check that has nothing to do with language: every
+      number in an answer must already exist in that product's verified specifications, or the answer
+      is thrown away.
+    </p>
+    <p class="prov">Captured from: GET /faq/WHB03</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Five answers published for WHB03 — each figure traced to a page</caption>
+        <thead>
+          <tr><th>Answer</th><th class="num">Page</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>The basic charge capacity is <strong>36.0 gallons</strong>.</td><td class="num">7</td></tr>
+          <tr><td>The maximum speed is <strong>4306.0 RPM</strong>.</td><td class="num">4</td></tr>
+          <tr><td>The rotor diameter is <strong>151.0 mm</strong>.</td><td class="num">4</td></tr>
+          <tr><td>The torque specification is <strong>80.0 ft-lb</strong>.</td><td class="num">31</td></tr>
+          <tr><td>The bolt size is <strong>5/8 or 3/4 inches</strong>.</td><td class="num">31</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>An answer the system refused to publish</h3>
+    <p>
+      The language model also produced this, and it was discarded automatically:
+    </p>
+    <div class="capture">
+      <div class="head">Rejected — logged to logs/exceptions.jsonl</div>
+<pre><code>Q: What is the CFM rating at 3550 RPM for the Frick RXF-85-H?
+   rejected: unverified numbers in answer: [3550.0]</code></pre>
+    </div>
+    <p>
+      The figure 3550 appears in the manual only as part of a column heading — <em>"Cfm 3550 Rpm"</em> —
+      never as a measured value for this machine. The system had no verified source for it, so it
+      refused. Every rejection is written to an audit log with its reason.
+    </p>
+
+    <div class="note plain">
+      <span class="label">One decision for Genemco</span>
+      <p>
+        This is arguably stricter than needed: 3550 RPM is genuine information from the manual, just
+        held in a heading rather than a value. Loosening the rule to admit qualifiers from column
+        headings is a small change. We recommend leaving it strict, but it is your call.
+      </p>
+    </div>
+
+    <p>
+      Each product's answers also come as a <code>FAQPage</code> structured-data block that drops
+      straight into a Shopify product template for search-engine rich results.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">05</span> Safety warnings are quoted, never paraphrased</h2>
+    <p class="lede">
+      Specification tables and safety warnings travel separate paths. Warnings are stored word for word
+      with their page number and are returned exactly as printed. They are structurally incapable of
+      reaching the FAQ writer — a language model rewording a DANGER notice is a safety problem, not a
+      quality problem.
+    </p>
+    <p class="prov">Query: "dangers disassembling the demand pump" · top result</p>
+
+    <blockquote class="verbatim">
+      DANGER BEFORE OPENING ANY VIKING PUMP LIQUID CHAM- BER (PUMPING CHAMBER, RESERVOIR, JACKET, ETC.)
+      ENSURE: 1. THAT ANY PRESSURE IN THE CHAMBER HAS BEEN COMPLETELY VENTED THROUGH SUCTION OR DIS-
+      CHARGE LINES OR OTHER APPROPRIATE OPENINGS OR CONNECTIONS. 2. THAT THE DRIVING MEANS (MOTOR,
+      TURBINE, ENGINE, ETC.) HAS BEEN 'LOCKED OUT' OR MADE NON-OPERATIONAL SO THAT IT CANNOT BE STARTED
+      WHILE WORK IS BEING DONE ON THE PUMP. FAILURE TO FOLLOW ABOVE LISTED PRECAUTIONARY MEASURES MAY
+      RESULT IN SERIOUS INJURY OR DEATH.
+    </blockquote>
+    <p class="citation">
+      070.410-IOM.pdf, page 30 · returned for SKU WHB03 · the same warning also appears on page 27
+      under DEMAND PUMP DISASSEMBLY
+    </p>
+
+    <p>
+      A salesperson asked a plain-language question and received the manufacturer's own words, with a
+      page number a technician can check against the paper manual. <strong>96 safety panels</strong>
+      were extracted from this manual — every DANGER, WARNING, CAUTION and NOTICE it contains — and
+      they apply to both compressor SKUs it covers.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">06</span> Finding the right machine</h2>
+    <p class="lede">
+      Search combines exact model-number matching with meaning-based matching, then re-ranks the
+      results. The first keeps part numbers precise; the second lets a salesperson describe a machine
+      without knowing its model.
+    </p>
+    <p class="prov">Captured from: POST /search · 590 indexed passages · re-run 9 Aug 2026</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Four queries, actual top results</caption>
+        <thead>
+          <tr><th>Question asked</th><th>Top result</th><th class="num">Score</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>Frick RXF-85-H</code></td><td>WHB03 — the exact unit</td><td class="num">9.19</td></tr>
+          <tr><td><code>500 HP 460 volt ammonia screw compressor package</code></td><td>SIRA02 — Vilter VSS1201, 500 Hp, 460 V</td><td class="num">7.08</td></tr>
+          <tr><td><code>8 inch ammonia shut-off globe valve</code></td><td>GENF454 — Ammonia Shut-Off Globe Valve (8 in)</td><td class="num">7.61</td></tr>
+          <tr><td><code>end suction centrifugal pump 1200 GPM</code></td><td>IRS01A — Scot 106, 1200 GPM Max</td><td class="num">8.88</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      The first query is the demanding one. Genemco stocks both an <strong>RXF-85-H</strong> and an
+      <strong>RXF-85H</strong> — one hyphen apart, different units. Asked for the first, the system
+      returned <strong>only</strong> that machine: all twelve top results are WHB03, its product
+      record followed by its individual specifications. The near-twin does not appear at all. Two
+      products whose names differ by a single character are kept apart rather than blurred together.
+    </p>
+    <p>
+      The second query contains no model number at all, and still returned the correct 500 HP Vilter
+      package from a plain description of it.
+    </p>
+    <p>
+      The fourth shows the separation clearly: the correct pump scored <strong>8.88</strong> while the
+      next candidate fell to <strong>−8.79</strong>. The system is not guessing between close options;
+      it either has a match or plainly does not.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">07</span> Milestone 1 validation run</h2>
+    <p class="prov">Captured from: logs/milestone1_report.json · 9 August 2026</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Run results</caption>
+        <thead><tr><th>Measure</th><th class="num">Result</th></tr></thead>
+        <tbody>
+          <tr><td>SKUs processed</td><td class="num">20</td></tr>
+          <tr><td>Completed end to end</td><td class="num">20 / 20 &nbsp;(100%)</td></tr>
+          <tr><td>Enriched from a manual</td><td class="num">2</td></tr>
+          <tr><td>Searchable passages produced</td><td class="num">590</td></tr>
+          <tr><td>Safety panels extracted</td><td class="num">96</td></tr>
+          <tr><td>Telemetry payloads validated</td><td class="num">2</td></tr>
+          <tr><td>Merge conflicts</td><td class="num">0</td></tr>
+          <tr><td>Exceptions logged</td><td class="num">4</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p>
+      All four logged exceptions are deliberate skips, not failures: the manual's table of contents and
+      its pressure-transducer conversion grid, each recorded twice (once per compressor SKU). Both are
+      reference material rather than product specifications.
+    </p>
+    <p>
+      Only two of the twenty SKUs have a manual, because only one manual has been supplied. The other
+      eighteen carry their Shopify identity information and nothing more — reported honestly as
+      <code>pdf_enrichment: false</code> rather than padded with guesses.
+    </p>
+
+    <h3>Correctness is enforced in code, not by prompting</h3>
+    <p>
+      <strong>31 automated tests</strong> cover the contract's rules directly: source precedence, the
+      5% conflict tolerance, provenance on every field, the FAQ number check, multi-model manual
+      filtering, and the rule that safety text can never reach the FAQ writer. All 31 pass.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">08</span> What we need from Genemco</h2>
+    <p class="lede">
+      These are the only items standing between this build and the full catalogue run. Each unblocks a
+      specific deliverable.
+    </p>
+
+    <div class="tablewrap">
+      <table>
+        <caption>Outstanding inputs, in order of impact</caption>
+        <thead><tr><th>Needed</th><th>What it unblocks</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Shopify Admin API token</strong><br><span class="pill wait">Highest priority</span></td>
+            <td>Real inventory levels, cost data, unpublished products, and the full 6,084-SKU catalogue. The token supplied so far returns <code>401 Unauthorized</code>. Read access to products is sufficient.</td>
+          </tr>
+          <tr>
+            <td><strong>More PDF manuals</strong></td>
+            <td>Specifications and safety text for the rest of the catalogue. One manual produced 14 specifications and 96 safety panels; eighteen of twenty SKUs currently have none.</td>
+          </tr>
+          <tr>
+            <td><strong>Nameplate photographs</strong></td>
+            <td>Serial numbers, voltages and amperages read from the physical machine — and the source-precedence and conflict-detection rules, which cannot be demonstrated with only one source of data.</td>
+          </tr>
+          <tr>
+            <td><strong>Telemetry schema</strong></td>
+            <td>Diagnostics against Genemco's own alarm format. The endpoint works today on a built-in Frick Quantum HD-style default; your schema replaces it with no code change.</td>
+          </tr>
+          <tr>
+            <td><strong>Technical literature (Stream C)</strong></td>
+            <td>The reference-document search corpus. None supplied yet.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">09</span> Known limits, stated plainly</h2>
+    <p class="lede">
+      Four things are not finished. None blocks Milestone 1, and all are listed here rather than left
+      to be discovered later.
+    </p>
+    <ol>
+      <li>
+        <strong>Two tables were read but not attached to products.</strong> Allowable Flange Loads and
+        CH Coupling Data are organised by pipe and coupling size rather than by machine model, so they
+        apply to the whole RXF range at once. We recommend making them searchable reference text rather
+        than forcing them into per-product fields — a short piece of work, pending your preference.
+      </li>
+      <li>
+        <strong>Some fractions in the coupling table are damaged.</strong> The manual uses a custom font
+        for fractions that extracts as unreadable characters. Affects that one table.
+      </li>
+      <li>
+        <strong>Shared manuals are stored per product.</strong> A manual covering many SKUs is currently
+        duplicated for each. Harmless at 20 SKUs; it needs restructuring before the full catalogue run,
+        and is accounted for in the Milestone 2 plan.
+      </li>
+      <li>
+        <strong>Source-precedence rules are untested against real conflicting data.</strong> The logic is
+        covered by automated tests, but has never seen a real nameplate disagree with a real manual.
+        Nameplate photographs would close this.
+      </li>
+    </ol>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">10</span> Running costs</h2>
+    <p class="lede">
+      All third-party service costs to date, across all development and testing.
+    </p>
+    <div class="tablewrap">
+      <table>
+        <caption>Actual spend and projection</caption>
+        <thead><tr><th>Item</th><th class="num">Cost</th></tr></thead>
+        <tbody>
+          <tr><td>All development and testing to date</td><td class="num">under $0.10</td></tr>
+          <tr><td>This 20-SKU validation run</td><td class="num">≈ $0.02</td></tr>
+          <tr><td>Projected: 100-SKU run, no nameplate photos</td><td class="num">≈ $0.01</td></tr>
+          <tr><td>Projected: full catalogue text (6,084 SKUs)</td><td class="num">≈ $0.50</td></tr>
+          <tr><td>Projected: nameplate photo reading, full catalogue</td><td class="num">≈ $43</td></tr>
+          <tr><td>Vector database storage</td><td class="num">pennies / month</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      Reading the text of the entire catalogue is inexpensive. Reading nameplate <em>photographs</em> is
+      the only material cost, and it scales with how many photographs are supplied. Document parsing runs
+      on local hardware and costs nothing beyond processing time.
+    </p>
+    <p>
+      Figures are based on current published rates for the services used and should be confirmed against
+      live pricing before being treated as a budget commitment.
+    </p>
+  </section>
+
+  <hr>
+
+  <section>
+    <h2><span class="num">11</span> Recommended next step</h2>
+    <p>
+      Supply the Shopify Admin API token and two or three further PDF manuals for high-value SKUs. That
+      combination re-runs the catalogue against authoritative data and demonstrates the specification and
+      safety pipeline across several product families, which is what Milestone 2 scales up.
+    </p>
+    <p>
+      If nameplate photographs for those same SKUs can be included, the source-precedence and
+      conflict-detection rules — the part of the contract not yet exercised against real conflicting
+      data — can be demonstrated at the same time.
+    </p>
+  </section>
+
+  <p class="footer">
+    Every figure in this report was captured from an actual run of the system on 9 August 2026.
+    Nothing has been estimated or reconstructed except the cost projections in section 10, which are
+    labelled as such. Catalogue data in this run came from the public genemco.com product feed and is
+    marked <code>public_storefront</code> throughout; it is not authoritative until the Shopify Admin
+    API token is supplied.
+  </p>
+
+</div>
+</body>
+</html>

@@ -158,6 +158,75 @@ def build_golden_record(
     return record
 
 
+# Sources that are authoritative for TECHNICAL specs. Catalog listings are not:
+# they are scraped from a product page and verified against nothing.
+AUTHORITATIVE_SPEC_SOURCES = {"pdf_manual", "nameplate"}
+
+
+def _conflict_reason(kept: SpecValue, rejected: SpecValue) -> str:
+    """Describe the disagreement accurately -- numeric tolerance vs text mismatch."""
+    try:
+        float(kept.value); float(rejected.value)
+        how = f"differ beyond {settings.NUMERIC_CONFLICT_TOLERANCE_PCT}% numeric tolerance"
+    except (TypeError, ValueError):
+        how = "text values do not match"
+    return (f"{rejected.source} vs {kept.source} {how}; {kept.source} wins "
+            f"(authoritative for technical specs)")
+
+
+def merge_catalog_specs(record: GoldenRecord, catalog_specs: dict[str, SpecValue]) -> dict:
+    """
+    Fold catalog_harvest specs into an existing Golden Record WITHOUT ever
+    overwriting manual or nameplate data.
+
+    Rules (SOW precedence, extended for catalog_harvest):
+      * manual/nameplate ALWAYS win a technical field -- catalog never overwrites
+      * a numeric disagreement beyond tolerance is logged as a conflict, and the
+        manual value stands (WHB03: manual 4306 RPM vs catalog 3600 RPM)
+      * catalog fills a gap ONLY when the SKU has no manual at all
+      * commercial identity (title, url, stock) lives in shopify{}, not here
+
+    Returns a small stats dict for run reporting.
+    """
+    has_manual = (record.merge_meta.pdf_enrichment
+                  or record.merge_meta.nameplate_enrichment)
+    stats = {"gap_filled": 0, "blocked_by_manual": 0, "conflicts": 0, "skipped_existing": 0}
+
+    for field, cv in catalog_specs.items():
+        existing = record.specs.get(field)
+
+        if existing and existing.source in AUTHORITATIVE_SPEC_SOURCES:
+            stats["blocked_by_manual"] += 1
+            if _values_conflict(existing, cv):
+                conflict = MergeConflict(
+                    field=field,
+                    candidates=[existing.model_dump(), cv.model_dump()],
+                    reason=_conflict_reason(existing, cv),
+                )
+                record.merge_meta.conflicts.append(conflict)
+                log_conflict(sku=record.sku, field=field, candidates=conflict.candidates)
+                stats["conflicts"] += 1
+            continue
+
+        if existing:
+            stats["skipped_existing"] += 1
+            continue
+
+        if has_manual:
+            # Manual-backed SKU: its technical spec set is the manual's, not the
+            # catalog's. Anything the manual omits stays omitted rather than being
+            # topped up from an unverified source.
+            stats["blocked_by_manual"] += 1
+            continue
+
+        record.specs[field] = cv
+        stats["gap_filled"] += 1
+
+    if "catalog_harvest" not in record.merge_meta.sources_used:
+        record.merge_meta.sources_used.append("catalog_harvest")
+    return stats
+
+
 def save_golden_record(record: GoldenRecord) -> Path:
     path = settings.GOLDEN_DIR / f"{_safe(record.sku)}.json"
     path.write_text(record.model_dump_json(indent=2), encoding="utf-8")

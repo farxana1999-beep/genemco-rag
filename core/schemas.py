@@ -159,4 +159,7 @@ class Chunk(BaseModel):
     source_url: Optional[str] = None
     page: Optional[int] = None
     section: Optional[str] = None
-    doc_type: Literal["spec", "faq", "literature", "telemetry", "shopify"] = "spec"
+    # "catalog" = search-layer chunk built from scraped catalog listings. Kept
+    # distinct from "spec" so the grounded FAQ layer can never pick it up.
+    doc_type: Literal["spec", "faq", "literature", "telemetry", "shopify",
+                      "catalog"] = "spec"

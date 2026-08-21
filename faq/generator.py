@@ -25,9 +25,21 @@ RULES (non-negotiable):
 """
 
 
+# Grounded FAQs are built ONLY from sources verified against a document. Catalog
+# listings are scraped from a product page and checked against nothing, so they are
+# structurally barred from the FAQ layer -- the same quarantine used for safety text.
+FAQ_ELIGIBLE_SOURCES = {"pdf_manual", "nameplate", "telemetry"}
+
+
+def faq_eligible_specs(record: GoldenRecord) -> dict:
+    """The subset of specs a grounded FAQ may be built from."""
+    return {f: sv for f, sv in record.specs.items()
+            if sv.source in FAQ_ELIGIBLE_SOURCES}
+
+
 def _spec_payload(record: GoldenRecord) -> dict:
     payload = {}
-    for field, sv in record.specs.items():
+    for field, sv in faq_eligible_specs(record).items():
         page = None
         if sv.source_ref and "#page=" in str(sv.source_ref):
             try:
@@ -66,8 +78,10 @@ def _call_llm(record: GoldenRecord, max_items: int) -> list[dict]:
 
 def generate_faqs(record: GoldenRecord, max_items: int = 6) -> FAQBatch:
     """Generate + schema-validate + numeric-gate + dedup. Returns only surviving FAQs."""
-    if not record.specs:
-        log.info("SKU %s has no specs — skipping FAQ generation", record.sku)
+    eligible = faq_eligible_specs(record)
+    if not eligible:
+        log.info("SKU %s has no FAQ-eligible specs (catalog-only or empty) — "
+                 "skipping FAQ generation, no LLM call", record.sku)
         return FAQBatch(sku=record.sku, items=[])
 
     try:

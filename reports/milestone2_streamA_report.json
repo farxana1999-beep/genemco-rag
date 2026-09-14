@@ -1,0 +1,40 @@
+{
+  "run": "milestone2_stream_a_catalog_search_layer",
+  "timestamp": "2026-09-14T13:16:12.236105+00:00",
+  "population": "entire catalog harvest -- no Stream A SKU list available",
+  "population_defined": false,
+  "stream_a_expected_skus": 6084,
+  "harvest_file": "farzana_rag_sandbox.json",
+  "harvest_records": 15939,
+  "duplicate_ids_in_harvest": 0,
+  "processed": 15939,
+  "completed": 15939,
+  "failed": 0,
+  "completion_rate_pct": 100.0,
+  "completed_with_specs": 15937,
+  "completed_with_specs_rate_pct": 99.99,
+  "gate_pct": 85.0,
+  "gate_passed_on_processed_population": true,
+  "worst_case_rate_for_any_6084_subset_pct": 100.0,
+  "failures_by_category": {},
+  "notes": {
+    "duplicate_serial_flagged": 353,
+    "url_fallback_id": 38,
+    "identity_only_no_specs": 2
+  },
+  "dual_source_precedence": {
+    "skus": 20,
+    "blocked_by_manual": 30,
+    "gap_filled": 90,
+    "conflicts": 3,
+    "manual_specs_altered": 0
+  },
+  "specs_total": 72724,
+  "chunks_total": 88663,
+  "destination": "search layer only -- no embeddings, no upsert, FAQ layer untouched",
+  "outputs": {
+    "golden_records": "data/search_layer/catalog_golden_records.jsonl",
+    "chunks": "data/search_layer/catalog_chunks.jsonl"
+  },
+  "elapsed_seconds": 8.93
+}

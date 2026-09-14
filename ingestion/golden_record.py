@@ -72,6 +72,7 @@ def _pdf_to_specvalues(records: list[SpecRecord], accepted_models: list[str] | N
         out[r.spec] = SpecValue(
             value=r.value, unit=r.unit, source="pdf_manual",
             source_ref=ref, method="docling_table", confidence=0.9,
+            source_text=r.source_text,
         )
     return out
 
@@ -174,7 +175,8 @@ def _conflict_reason(kept: SpecValue, rejected: SpecValue) -> str:
             f"(authoritative for technical specs)")
 
 
-def merge_catalog_specs(record: GoldenRecord, catalog_specs: dict[str, SpecValue]) -> dict:
+def merge_catalog_specs(record: GoldenRecord, catalog_specs: dict[str, SpecValue],
+                        log_conflicts: bool = True) -> dict:
     """
     Fold catalog_harvest specs into an existing Golden Record WITHOUT ever
     overwriting manual or nameplate data.
@@ -204,7 +206,11 @@ def merge_catalog_specs(record: GoldenRecord, catalog_specs: dict[str, SpecValue
                     reason=_conflict_reason(existing, cv),
                 )
                 record.merge_meta.conflicts.append(conflict)
-                log_conflict(sku=record.sku, field=field, candidates=conflict.candidates)
+                # Read-side merges (e.g. the query service loading records at
+                # startup) pass log_conflicts=False, or every restart would
+                # re-append the same conflicts to logs/conflicts.jsonl.
+                if log_conflicts:
+                    log_conflict(sku=record.sku, field=field, candidates=conflict.candidates)
                 stats["conflicts"] += 1
             continue
 

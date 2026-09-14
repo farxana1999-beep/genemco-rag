@@ -139,3 +139,16 @@ def chunks_from_literature(pdf_text_sections: list[tuple[str, int]], sidecar: di
             source_url=url, page=page, section=f"body:{i}", doc_type="literature",
         ))
     return chunks
+
+
+def chunks_for_catalog(record: GoldenRecord) -> list[Chunk]:
+    """
+    Search-layer chunks for a catalog_harvest Golden Record.
+
+    Same content as chunks_from_golden_record, but doc_type="catalog" and chunk ids
+    in their own "cat_" namespace. A SKU that also has a manual produces spec chunks
+    with the same sha1(sku|field) ids; without the namespace a catalog upsert would
+    silently overwrite the grounded chunk for that field.
+    """
+    return [c.model_copy(update={"chunk_id": f"cat_{c.chunk_id}", "doc_type": "catalog"})
+            for c in chunks_from_golden_record(record)]

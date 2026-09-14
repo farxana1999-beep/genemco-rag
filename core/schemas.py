@@ -42,6 +42,8 @@ class SpecRecord(BaseModel):
     # int  -> page number within a PDF manual
     # str  -> source URL, for specs harvested from a web catalog
     source_page: Optional[int | str] = None
+    # Verbatim text of the table cell this row came from, for citation quoting.
+    source_text: Optional[str] = None
 
 
 # ---------------------------------------------------------------- Golden Record
@@ -57,6 +59,9 @@ class SpecValue(BaseModel):
     source_ref: Optional[str] = None      # file path / page / image name
     method: Optional[str] = None          # e.g. "docling_table", "vision_llm"
     confidence: Optional[float] = None
+    # Verbatim source text the value was read from. Returned as a citation's
+    # quoted_span -- never reconstructed, so absent when ingest did not keep it.
+    source_text: Optional[str] = None
 
 
 class MergeConflict(BaseModel):

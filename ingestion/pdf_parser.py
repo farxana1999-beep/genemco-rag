@@ -235,6 +235,7 @@ def _linearize_table(df, source_file: str, page_no: int | None) -> list[SpecReco
                     model=model, spec=_normalize_spec_name(spec_name),
                     value=value, unit=unit or _unit_from_label(spec_name),
                     source_file=source_file, source_page=page_no,
+                    source_text=f"{model} | {spec_name}: {cell}",
                 ))
     else:
         # Layout A: models in first column, specs across the header
@@ -256,6 +257,7 @@ def _linearize_table(df, source_file: str, page_no: int | None) -> list[SpecReco
                     model=model, spec=_normalize_spec_name(spec_name),
                     value=value, unit=unit or _unit_from_label(spec_name),
                     source_file=source_file, source_page=page_no,
+                    source_text=f"{model} | {spec_name}: {cell}",
                 ))
     return records
 

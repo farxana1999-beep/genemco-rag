@@ -8,4 +8,14 @@ logs/*
 !logs/.gitkeep
 .pytest_cache/
 
+# Third-party deliverables (Muiz's corpus/evaluation zips live in Drive, not git;
+# CORPUS_V1/V2 alone are ~2 GB and exceed GitHub's 100 MB file limit)
 *.zip
+*.tar
+*.tar.*
+
+# Atomic-write temp files from the search-layer runner
+*.jsonl.tmp
+
+# Local tool state
+.claude/

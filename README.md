@@ -107,3 +107,18 @@ default (Frick Quantum HD-style fields).
 - **Add new SKUs**: they appear automatically on the next Shopify sync + stream run.
 - **Rotate API keys**: edit `.env`, restart the API. No keys are ever stored in code or data.
 - **Switch vector backend**: set `VECTOR_BACKEND=weaviate` + Weaviate creds; no code change.
+
+## Milestone 2 — verified query service
+
+| Document | Purpose |
+|---|---|
+| [docs/HANDOVER.md](docs/HANDOVER.md) | Architecture, schemas, field mappings, run logs, maintenance |
+| [docs/QUERY_API.md](docs/QUERY_API.md) | `POST /query` contract with captured examples |
+| [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Running the service behind the Worker |
+| [reports/milestone2_streamA_report.md](reports/milestone2_streamA_report.md) | Stream A completion evidence |
+
+```bash
+pip install -r requirements-query.txt
+python -m api.query_app                        # GET /health, POST /query on 127.0.0.1:9000
+python -m scripts.run_catalog_search_layer     # rebuild the catalog search layer
+```

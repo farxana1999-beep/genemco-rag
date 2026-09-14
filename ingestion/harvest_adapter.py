@@ -153,7 +153,8 @@ def _provenance_index(record: dict) -> dict:
     return idx
 
 
-def _mk(value, field: str, record: dict, prov: dict, method: str, conf: float) -> SpecValue:
+def _mk(value, field: str, record: dict, prov: dict, method: str, conf: float,
+        source_text: str | None = None) -> SpecValue:
     entry = prov.get(field, {})
     # source_page in this feed is a URL, not a page number -- carry it as the
     # reference string. It becomes a real page number when PDFs land in Sprint 2.
@@ -161,7 +162,8 @@ def _mk(value, field: str, record: dict, prov: dict, method: str, conf: float) -
            or record.get("source_url") or record.get("source_page"))
     val, unit = _coerce_value(field, value)
     return SpecValue(value=val, unit=unit, source="catalog_harvest",
-                     source_ref=ref, method=method, confidence=conf)
+                     source_ref=ref, method=method, confidence=conf,
+                     source_text=source_text)
 
 
 def build_golden_record(record: dict, shopify_block: ShopifyBlock | None = None) -> GoldenRecord:
@@ -190,16 +192,19 @@ def build_golden_record(record: dict, shopify_block: ShopifyBlock | None = None)
             # Still holds several facts. Keep it whole (splitting these shreds
             # values like "Inlets: (2) 4 in"), but mark it and recover the pairs
             # under a namespace below.
-            specs[field] = _mk(v, field, record, prov, METHOD_COMPOUND, CONF_COMPOUND)
+            specs[field] = _mk(v, field, record, prov, METHOD_COMPOUND, CONF_COMPOUND,
+                               source_text=f"{k}: {v}")
             compound_fields.append(field)
             for nk, nv in _parse_bundle(v):
                 nested = f"{field}__{_norm_field(nk)}"
                 if nested not in specs:
                     specs[nested] = _mk(nv, nested, record, prov,
-                                        METHOD_RECOVERED, CONF_RECOVERED)
+                                        METHOD_RECOVERED, CONF_RECOVERED,
+                                        source_text=f"{nk}: {nv}")
                     recovered_fields.append(nested)
         else:
-            specs[field] = _mk(v, field, record, prov, METHOD_ATOMIC, CONF_ATOMIC)
+            specs[field] = _mk(v, field, record, prov, METHOD_ATOMIC, CONF_ATOMIC,
+                               source_text=f"{k}: {v}")
 
     # ---- 2. bundled specs: recover anything the flattening dropped
     for bkey, bval in bundled.items():
@@ -216,12 +221,14 @@ def build_golden_record(record: dict, shopify_block: ShopifyBlock | None = None)
             nested = f"{prefix}__{plain}"
             if nested in specs:
                 continue
-            specs[nested] = _mk(nv, nested, record, prov, METHOD_RECOVERED, CONF_RECOVERED)
+            specs[nested] = _mk(nv, nested, record, prov, METHOD_RECOVERED, CONF_RECOVERED,
+                                source_text=f"{nk}: {nv}")
             recovered_fields.append(nested)
 
     # ---- 3. canonical model tiers, so BOTH survive as first-class fields
     for field, val in extract_model_tiers(record).items():
-        specs[field] = _mk(val, field, record, prov, METHOD_RECOVERED, CONF_RECOVERED)
+        specs[field] = _mk(val, field, record, prov, METHOD_RECOVERED, CONF_RECOVERED,
+                           source_text=record.get("raw_model_code"))
 
     # ---- 4. assemble
     block = shopify_block or ShopifyBlock(

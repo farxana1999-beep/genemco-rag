@@ -5,6 +5,7 @@ Endpoints per SOW Milestone 2:
   POST /search            — hybrid search + rerank (sales-engineer chat tool)
   GET  /faq/{sku}         — validated JSON-LD FAQPage schema for SEO injection
   POST /telemetry/query   — diagnostic queries against alarm/telemetry fields
+  POST /query             — verified, citation-backed answers (see api/query.py)
 
 Run:  uvicorn api.main:app --reload --port 8000
 """
@@ -21,6 +22,10 @@ app = FastAPI(
     version="1.0.0",
     description="Hybrid semantic search, grounded SEO FAQs, and telemetry diagnostics for Genemco.com",
 )
+
+from api.query import router as query_router  # noqa: E402
+
+app.include_router(query_router)
 
 
 class SearchRequest(BaseModel):

@@ -1,0 +1,12 @@
+# Runtime dependencies for the verified /query service ONLY (api.query_app).
+#
+# Serving /query needs none of the ingestion stack -- no Docling, torch, Pinecone,
+# OpenAI or sentence-transformers. It answers from golden records on disk.
+# The full pipeline (ingestion, /search, /faq) uses requirements.txt.
+#
+#   pip install -r requirements-query.txt
+#   python -m api.query_app
+fastapi>=0.111
+uvicorn[standard]>=0.30
+pydantic>=2.7
+python-dotenv>=1.0

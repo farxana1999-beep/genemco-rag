@@ -40,8 +40,8 @@ If a value cannot be grounded, the system says so instead of answering.
 | Numeric verification gate | Done |
 | Grounded FAQ engine (manual sources only) | Done |
 | `POST /query` verified endpoint, deployable service | Done |
-| Deployment on `genemco-harvester` | Handed to Muiz 15 Sep 2026 — bundle + `DEPLOYMENT.md`; not confirmed running from here |
-| Worker upstream switch to `127.0.0.1:9000` | **PENDING — Muiz** |
+| Deployment on `genemco-harvester` | **Live** — deployed by Muiz 16 Sep 2026; 5 of 5 smoke tests passed |
+| Worker upstream switch to `127.0.0.1:9000` | **Done** — end-to-end integration verified, signed off by Muiz |
 | Active Stream A SKU list (6,084) | **PENDING — Genemco** (list or Admin API token) |
 | Manual corpus CORPUS_V1 ingestion | **PENDING — Muiz** (4 of 5 archive parts missing) |
 | Search-layer embeddings / upsert | **PENDING — approval** (separate index required) |
@@ -398,10 +398,20 @@ Install steps: [`docs/DEPLOYMENT.md`](DEPLOYMENT.md).
 | systemd unit | `genemco-query` |
 | Install path | `/opt/genemco-query`, config in `/etc/genemco-query/query.env` |
 
-The service went to Muiz on 15 Sep 2026 as a checksummed bundle with the runbook. The
-install and the Worker cut-over are his steps, and neither has been confirmed from the
-development machine — so the addresses above are the agreed target, live once Muiz
-reports the smoke tests in `DEPLOYMENT.md` section 5 green.
+**Live since 16 Sep 2026.** Muiz deployed the bundle on `genemco-harvester`, ran all five
+smoke tests in `DEPLOYMENT.md` section 5 green — including a missing token correctly
+rejected with `401` — cut the Worker over to `http://127.0.0.1:9000/query`, and signed off
+the integration on his side. Two questions asked through the full public chain returned
+exactly the documented responses:
+
+| Question | Result | Latency |
+|---|---|---|
+| RXF-85-H oil charge | `verified: true`, cited 070.410-IOM.pdf page 7 | 18.8 ms |
+| RXF-999 (unknown machine) | `ungrounded: true`, `X-Query-Outcome: unknown_machine` | — |
+
+The verification record is in `DEPLOYMENT.md` section 9. These results were produced on
+the VM by Muiz; they have not been re-run from the development machine, which has no
+access to the host.
 
 ### Endpoints
 
@@ -732,8 +742,6 @@ pytest tests/ -v
 |---|---|---|
 | CORPUS_V1 parts `.00`–`.03` | Muiz | Manual-corpus ingestion, grounded layer at scale |
 | CORPUS_V1 JSON sidecar schema confirmation | Muiz | Manual field mapping (6d) |
-| Deployment target and access | Genemco / Muiz | `/query` live behind the Worker |
-| Worker upstream switch + shared token | Muiz | Worker → `/query` |
 | Stream A active SKU list, or Shopify Admin API token | Genemco | 6,084-SKU coverage proof; inventory data |
 | Separate vector index / namespace for the search layer | Genemco (approval) | Catalog embeddings |
 | Nameplate photos | Genemco | Nameplate precedence, conflict detection |

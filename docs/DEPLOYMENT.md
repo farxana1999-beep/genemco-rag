@@ -1,14 +1,18 @@
 # Verified Query Service — Deployment Handoff
 
-**For:** Muiz · **Host:** `genemco-harvester` (permanent RAG VM) · **Listens on:** `127.0.0.1:9000`
-**Worker upstream after cut-over:** `http://127.0.0.1:9000/query`
+**Status: LIVE** since 16 Sep 2026 — deployed by Muiz, all smoke tests passed, integration
+signed off. Verification record in section 9.
+
+**Host:** `genemco-harvester` (permanent RAG VM) · **Listens on:** `127.0.0.1:9000` · **Worker upstream:** `http://127.0.0.1:9000/query`
 
 This service answers equipment questions from golden-record data on disk. At runtime it
 needs **no internet access and no third-party API keys** — no OpenAI, Pinecone or Shopify.
 The only secret is one shared token, which you generate on the VM in step 2.5. It never
 leaves the box.
 
-Every command below is copy-pasteable. Run the steps in order.
+This was the install runbook, and it is now the operating record of what is running.
+Sections 2 and 5 stay accurate for a rebuild, a move to another host, or a fresh bundle;
+section 7 covers day-to-day operation of the live service.
 
 ---
 
@@ -460,16 +464,41 @@ sudo userdel genemco-query
 
 ---
 
-## 9. Verified before handoff
+## 9. Verification record
 
-Checked by unpacking this exact bundle into an empty directory, creating a fresh Python 3.12
-virtualenv, installing only `requirements-query.txt`, and starting the service with the §2.5
-variables:
+### On the VM — 16 Sep 2026, run by Muiz
+
+All five smoke tests in §5 passed on `genemco-harvester`:
+
+| # | Check | Result |
+|---|---|---|
+| 1 | Listening on loopback only | `127.0.0.1:9000` |
+| 2 | `GET /health` | `200`, records loaded |
+| 3 | `POST /query` with no token | `401` |
+| 4 | `POST /query` with token, RXF-85-H oil charge | `200`, `verified: true`, page 7 citation |
+| 5 | `POST /query` with token, RXF-999 | `200`, `ungrounded: true` |
+
+### End to end through the Worker
+
+After the cut-over, the same two questions were asked through the full public chain — client to Worker to `/query` — and returned exactly the documented responses:
+
+| Question | Response | Latency |
+|---|---|---|
+| RXF-85-H oil charge | `verified: true`, cited 070.410-IOM.pdf page 7 | 18.8 ms |
+| RXF-999 (unknown machine) | `ungrounded: true`, `X-Query-Outcome: unknown_machine` | — |
+
+Muiz signed off the integration on his side. These results were produced on the VM; they
+have not been reproduced from the development machine, which has no access to the host.
+
+### Before handoff — in a clean build environment
+
+The bundle was unpacked into an empty directory, given a fresh Python 3.12 virtualenv with
+only `requirements-query.txt` installed, and started with the §2.5 variables:
 
 - bundle checksum and `MANIFEST.sha256` verify
 - `/health` returns `200` with 15,939 records
 - `/query` without the token returns `401`
 - smoke tests 4 and 5 return exactly the responses shown in §5
 
-The systemd unit (§2.6) and the Linux account commands (§2.3) could not be executed in the
-build environment. They use standard systemd and `useradd` options only.
+The systemd unit (§2.6) and the Linux account commands (§2.3) could not be run there; they
+were first exercised on the VM in the deployment above.

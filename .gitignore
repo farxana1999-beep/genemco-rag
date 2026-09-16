@@ -19,3 +19,6 @@ logs/*
 
 # Local tool state
 .claude/
+
+# Deployment bundles (built by scripts/build_query_bundle.py; shipped out-of-band)
+dist/

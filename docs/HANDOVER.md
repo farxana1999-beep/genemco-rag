@@ -11,7 +11,8 @@ manual corpus (Muiz) or on inputs from Genemco are marked **PENDING** with the o
 | [`docs/HANDOVER.md`](HANDOVER.md) | This file — architecture, schemas, logs, maintenance |
 | [`docs/QUERY_API.md`](QUERY_API.md) | `/query` contract reference with real request/response pairs |
 | [`docs/DEPLOYMENT.md`](DEPLOYMENT.md) | Runbook Muiz follows on `genemco-harvester` — install, token, smoke tests |
-| [`reports/milestone2_streamA_report.md`](../reports/milestone2_streamA_report.md) | Stream A completion evidence |
+| [`reports/milestone2_streamA_completion_report.md`](../reports/milestone2_streamA_completion_report.md) | Criterion (a) completion evidence — the population measured, and what it does not claim |
+| [`reports/milestone2_streamA_report.md`](../reports/milestone2_streamA_report.md) | Stream A run detail |
 
 ---
 
@@ -42,7 +43,8 @@ If a value cannot be grounded, the system says so instead of answering.
 | `POST /query` verified endpoint, deployable service | Done |
 | Deployment on `genemco-harvester` | **Live** — deployed by Muiz 16 Sep 2026; 5 of 5 smoke tests passed |
 | Worker upstream switch to `127.0.0.1:9000` | **Done** — end-to-end integration verified, signed off by Muiz |
-| Active Stream A SKU list (6,084) | **PENDING — Genemco** (list or Admin API token) |
+| Criterion (a), 85% completion | **PASS** — 15,939 / 15,939 (100%) on the loaded master catalog, the population Gerald chose 16 Sep 2026 |
+| Active Stream A SKU list (6,084) | **PENDING — Genemco** (list or Admin API token); not required for criterion (a) as scoped |
 | Manual corpus CORPUS_V1 ingestion | **PENDING — Muiz** (4 of 5 archive parts missing) |
 | Search-layer embeddings / upsert | **PENDING — approval** (separate index required) |
 | Nameplate photos | **PENDING — Genemco** |
@@ -357,9 +359,16 @@ Evidence: [`reports/milestone2_streamA_report.md`](../reports/milestone2_streamA
 | Duplicate-serial flags carried | 353 |
 | Run time | 8.9 s |
 
-**Caveat:** no data held identifies the 6,084 active SKUs, so the run covered the whole
-harvest. With zero failures, any 6,084-SKU subset completes at 100% — provided every
-active SKU is present in the harvest, which needs the Stream A list to confirm.
+**Population and scope.** No data held by this project identifies which SKUs are active,
+so the run covered the whole harvest. On 16 Sep 2026 Gerald directed that criterion (a)
+be validated against the master catalog dataset loaded in the deployed service, which is
+what [`reports/milestone2_streamA_completion_report.md`](../reports/milestone2_streamA_completion_report.md)
+measures: **15,939 of 15,939 complete, 100.0%, against an 85% gate — PASS**.
+
+With zero failures, any subset of that dataset is also complete at 100%. What the
+measurement cannot show is whether an active SKU exists that is absent from the master
+dataset altogether — that would need the active-SKU list or Admin API access. No filtered
+active set was supplied or validated against.
 
 ### CORPUS_V1 manifest check
 
